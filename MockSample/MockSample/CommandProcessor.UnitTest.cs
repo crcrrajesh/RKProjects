@@ -15,6 +15,8 @@ namespace MockSample
        [Test]
         public void SendCommand()
         {
+
+
             Mock<IFirmware> mockFirmware = new Mock<IFirmware>();
             Action<IFirmware> fu=new Action<IFirmware>((ob)=>ob.IsOkToSendCommand("Start"));
             //System.Linq.Expressions.Expression<Func<IFirmware,bool>> exp = (ob)=>ob.IsOkToSendCommand("Start");
