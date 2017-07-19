@@ -41,8 +41,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ISubdeviceControl.cs" />
+    <Compile Include="KeyboardControl.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StateNotificationEventArgs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
