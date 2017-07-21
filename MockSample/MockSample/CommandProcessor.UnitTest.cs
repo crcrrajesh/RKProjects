@@ -17,9 +17,7 @@ namespace MockSample
         {
             Mock<IFirmware> mockFirmware = new Mock<IFirmware>();
             Action<IFirmware> fu=new Action<IFirmware>((ob)=>ob.IsOkToSendCommand("Start"));
-            //System.Linq.Expressions.Expression<Func<IFirmware,bool>> exp = (ob)=>ob.IsOkToSendCommand("Start");
-
-            mockFirmware.Setup(ob => ob.IsOkToSendCommand("Start")).Returns(() => true);
+          mockFirmware.Setup(ob => ob.IsOkToSendCommand("Start")).Returns(() => true);
            
             CommandProcessor commandProcessor = new CommandProcessor(mockFirmware.Object);
             Assert.AreEqual(1,commandProcessor.SendCommand("Start"));
