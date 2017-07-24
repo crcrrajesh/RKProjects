@@ -13,26 +13,82 @@ namespace PipeLines
     {
         static void Main(string[] args)
         {
+         TaskCancelation();
+           
+
+           //PipeLineFun();
+        }
+
+        private static void TaskCancelation()
+        {
+            var tokenSource2 = new CancellationTokenSource();
+            CancellationToken ct = tokenSource2.Token;
+
+            var task = Task.Factory.StartNew(() =>
+            {
+                // Were we already canceled?
+                ct.ThrowIfCancellationRequested();
+
+                bool moreToDo = true;
+                while (moreToDo)
+                {
+                    // Poll on this property if you have to do
+                    // other cleanup before throwing.
+                    if (ct.IsCancellationRequested)
+                    {
+                        // Clean up here, then...
+                        ct.ThrowIfCancellationRequested();
+                    }
+                }
+            }, tokenSource2.Token); // Pass same token to StartNew.
+
+            Thread.Sleep(1 * 1000);
+            tokenSource2.Cancel();
+
+            // Just continue on this thread, or Wait/WaitAll with try-catch:
+            try
+            {
+                task.Wait();
+            }
+            catch (AggregateException e)
+            {
+                foreach (var v in e.InnerExceptions)
+                    Console.WriteLine(e.Message + " " + v.Message);
+            }
+            finally
+            {
+                tokenSource2.Dispose();
+            }
+
+            Console.ReadKey();
+        }
+
+        private static void PipeLineFun()
+        {
             int BufferSize = int.MaxValue;
 
             var buffer1 = new BlockingCollection<string>(BufferSize);
             var buffer2 = new BlockingCollection<string>(BufferSize);
             var buffer3 = new BlockingCollection<string>(BufferSize);
 
-            var taskFactory=new TaskFactory(TaskCreationOptions.LongRunning,TaskContinuationOptions.None);
+            var taskFactory = new TaskFactory(TaskCreationOptions.LongRunning, TaskContinuationOptions.None);
+            var tokenSource2 = new CancellationTokenSource();
+            CancellationToken cancellationToken = tokenSource2.Token;
 
-            var stage1 = taskFactory.StartNew(() => ReadLinesFromFile(buffer1));
-            var stage2 = taskFactory.StartNew(() => BreakIntoWords(buffer1,buffer2));
-            var stage3 = taskFactory.StartNew(() => CorrectCase(buffer2, buffer3));
-            var stage4 = taskFactory.StartNew(() => PrintWords(buffer3));
+            var stage1 = taskFactory.StartNew(() => ReadLinesFromFile(buffer1, cancellationToken));
+            var stage2 = taskFactory.StartNew(() => BreakIntoWords(buffer1, buffer2, cancellationToken));
+            var stage3 = taskFactory.StartNew(() => CorrectCase(buffer2, buffer3, tokenSource2.Token));
+            var stage4 = taskFactory.StartNew(() => PrintWords(buffer3, cancellationToken));
 
-            Task.WaitAll(stage4, stage2,stage3,stage1);
+            Thread.Sleep(1 * 1000);
+            tokenSource2.Cancel();
+            Task.WaitAll(stage4, stage2, stage3, stage1);
 
             Console.WriteLine("Done !!!");
             Console.ReadLine();
         }
 
-        private static void PrintWords(BlockingCollection<string> input)
+        private static void PrintWords(BlockingCollection<string> input, CancellationToken cancellationToken)
         {
             long count = 0;
             try
@@ -40,26 +96,38 @@ namespace PipeLines
                
                foreach (var item in input.GetConsumingEnumerable())
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
                     count++;
                     Console.WriteLine(item);
                 }
                
             }
-            finally
+           finally
             {
                 //input.CompleteAdding();
             }
             Console.WriteLine("Words count {0}",count);
         }
 
-        private static void CorrectCase(BlockingCollection<string> input, BlockingCollection<string> output)
+        private static void CorrectCase(BlockingCollection<string> input, BlockingCollection<string> output, CancellationToken cancellationToken)
         {
             try
             {
-               foreach (var item in input.GetConsumingEnumerable())
+                foreach (var item in input.GetConsumingEnumerable())
                 {
-                    output.Add(item.ToUpper());
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    output.Add(item.ToUpper(), cancellationToken);
                 }
+            }
+            catch (OperationCanceledException ex)
+            {
+                Console.WriteLine("Cancelled");
             }
             finally
             {
@@ -67,7 +135,7 @@ namespace PipeLines
             }
         }
 
-        static void BreakIntoWords(BlockingCollection<string> input, BlockingCollection<string> output)
+        static void BreakIntoWords(BlockingCollection<string> input, BlockingCollection<string> output, CancellationToken cancellationToken)
         {
             try
             {
@@ -83,22 +151,24 @@ namespace PipeLines
                    
                 }
             }
+               
             finally
             {
                 output.CompleteAdding();
             }
         }
 
-        static void ReadLinesFromFile(BlockingCollection<string> output)
+        static void ReadLinesFromFile(BlockingCollection<string> output, CancellationToken cancellationToken)
         {
             try
             {
                 foreach (var phrase in ReadAllLines())
                 {
-                    output.Add(phrase);
-                  //  Thread.Sleep(10 * 1000);
+                    output.Add(phrase, cancellationToken);
+                 
                 }
             }
+            
             finally
             {
                 output.CompleteAdding();
