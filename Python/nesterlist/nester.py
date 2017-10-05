@@ -5,3 +5,5 @@ def print_lol(the_list):
         else:
             print(each_item)
 
+    print("End")
+
