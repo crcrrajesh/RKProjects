@@ -12,9 +12,16 @@ def main2():
         ["Graham Chapman",
          ["Michael Palin", "John Cleese", "Terry Gilliam", "Eric Idle", "Terry Jones"]]]
    # nester.print_lol(movies)
-    printfile("calculator.py")
-    filename="calculator.py"
-    writefile(filename)
+    #printfile("calculator.py")
+    #filename="calculator.py"
+    #writefile(filename)
+    f=makeincrement(2)
+    print(f(4))
+    print(f(10))
+
+def makeincrement(n):
+    return lambda x:x+n
+
 
 
 def writefile(filename):
